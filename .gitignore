@@ -6,3 +6,4 @@ __pycache__/
 *.pyw
 *.pyz
 .venv/
+secret.toml
