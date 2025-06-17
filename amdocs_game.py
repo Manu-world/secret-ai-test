@@ -96,7 +96,7 @@ class GameState(TypedDict):
 # ============= Prompt Templates =============
 class PromptTemplates:
     """Centralized prompt management for Corporate Conquest: The CipherCore Enigma, ensuring robust, context-aware interactions"""
-
+    
     MAIN_SYSTEM = """You are Oracle, a cryptic guide aiding an operative at Telecom Summit 2025, hosted by {company_name}. Your mission is to guide them to unlock the CipherCore server, secured by a five-digit code tied to {company_name}'s market soul. The whistleblower's message was: "Read the mark as it flows."
 
     Current Phase: {phase}
@@ -129,14 +129,14 @@ class PromptTemplates:
     Respond as Oracle, urging the player to unravel the puzzle through their own cunning."""
 
     SCORING_SYSTEM = """Analyze how close this input is to solving the CipherCore puzzle at Telecom Summit 2025, ensuring robust, context-sensitive scoring.
-
+    
     Solution: The code is {secret}, derived from ticker "DOX" (D=4, O=15, X=24, read as 41524)
     Current Total Score: {current_score}
     Current Phase: {phase}
     Previous Guesses: {previous_guesses}
     Guess Count in Last Minute: {guess_count}
     User Input: {current_input}
-
+    
     CRITICAL RULES:
     1. If the input contains the EXACT secret code {secret} AND the player has met the DOX milestone, set score_delta to reach a total score of 100 and is_correct_answer to true.
     2. If the exact input was guessed before, return score_delta: 0 (no points for repeating).
@@ -163,7 +163,7 @@ class PromptTemplates:
     }}
 
     Do not include any other text or explanation outside the JSON object."""
-
+    
     HINT_TEMPLATES = {
         "hint_1": "🌌 The summit pulses with wealth's currents. {company_name} bears a mark where value is traded.",
         "hint_2": "📜 A stage of trade holds {company_name}'s three-letter banner. Seek it in the summit's displays.",
@@ -566,17 +566,17 @@ class AmdocsConspiracyGame:
         response = self.llm_service.get_response(messages)
         state["feedback"] = response
         
-        # Add progress indicator only for wrong guesses with numbers
-        if not state["is_correct"] and any(c.isdigit() for c in state["current_input"]) and state["similarity_score"] != 0:
-            score = state["score"]
-            if score >= 80:
-                state["feedback"] += "\n[VERY CLOSE]"
-            elif score >= 60:
-                state["feedback"] += "\n[STRONG SIGNAL]"
-            elif score >= 40:
-                state["feedback"] += "\n[SIGNAL DETECTED]"
-            elif score > 0:
-                state["feedback"] += "\n[WEAK SIGNAL]"
+        # # Add progress indicator only for wrong guesses with numbers
+        # if not state["is_correct"] and any(c.isdigit() for c in state["current_input"]) and state["similarity_score"] != 0:
+        #     score = state["score"]
+        #     if score >= 80:
+        #         state["feedback"] += "\n[VERY CLOSE]"
+        #     elif score >= 60:
+        #         state["feedback"] += "\n[STRONG SIGNAL]"
+        #     elif score >= 40:
+        #         state["feedback"] += "\n[SIGNAL DETECTED]"
+        #     elif score > 0:
+        #         state["feedback"] += "\n[WEAK SIGNAL]"
         
         return state
     
@@ -587,13 +587,13 @@ class AmdocsConspiracyGame:
         
         # Determine which hint to show
         if score < 30 and "hint_1" not in hints_revealed:
-            hint = self.templates.HINT_TEMPLATES["hint_1"]
+            hint = self.templates.HINT_TEMPLATES["hint_1"].format(company_name=self.config.company_name)
             hints_revealed.append("hint_1")
         elif score < 50 and "hint_2" not in hints_revealed:
-            hint = self.templates.HINT_TEMPLATES["hint_2"]
+            hint = self.templates.HINT_TEMPLATES["hint_2"].format(company_name=self.config.company_name)
             hints_revealed.append("hint_2")
         elif score < 70 and "hint_3" not in hints_revealed:
-            hint = self.templates.HINT_TEMPLATES["hint_3"]
+            hint = self.templates.HINT_TEMPLATES["hint_3"].format(company_name=self.config.company_name)
             hints_revealed.append("hint_3")
         else:
             hint = "💭 'You have all the pieces... there isn't a hint anymore'"

@@ -398,6 +398,16 @@ def initialize_session_state():
     
     if "game_session" not in st.session_state:
         st.session_state.game_session = st.session_state.game_api.start_new_game()
+        # Initialize time from game session
+        initial_time = st.session_state.game_session.get("time_remaining", 15)
+        st.session_state.game_stats = {
+            "score": 0,
+            "attempts": 0,
+            "phase": "initial",
+            "discoveries": [],
+            "time_remaining": initial_time,
+            "game_duration": initial_time
+        }
     
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
@@ -410,15 +420,6 @@ def initialize_session_state():
     
     if "user_input" not in st.session_state:
         st.session_state.user_input = ""
-    
-    if "game_stats" not in st.session_state:
-        st.session_state.game_stats = {
-            "score": 0,
-            "attempts": 0,
-            "phase": "initial",
-            "discoveries": [],
-            "session_duration": 0
-        }
     
     if "input_history" not in st.session_state:
         st.session_state.input_history = []
@@ -477,6 +478,13 @@ def display_sidebar():
                 value=st.session_state.game_stats["attempts"],
                 help="Number of inputs made"
             )
+        
+        # Phase metric
+        st.metric(
+            label="🎯 Phase", 
+            value=st.session_state.game_stats["phase"].title(),
+            help="Current investigation phase"
+        )
         
         # Phase indicator
         phase_info = get_phase_display(st.session_state.game_stats["phase"])
@@ -559,12 +567,12 @@ def display_chat_interface():
         for i, chat_msg in enumerate(st.session_state.chat_history):
             if chat_msg["type"] == "user":
                 st.markdown(
-                    format_message(f"**🔍 You:** {chat_msg['message']}", "user"), 
+                    format_message(f"{chat_msg['message']}", "user"), 
                     unsafe_allow_html=True
                 )
             else:
                 st.markdown(
-                    format_message(f"**🕵️ Contact:** {chat_msg['message']}", "system"), 
+                    format_message(f"{chat_msg['message']}", "system"), 
                     unsafe_allow_html=True
                 )
     
@@ -674,17 +682,24 @@ def process_user_input(user_input: str):
                 "completed": response["metadata"]["completed"]
             })
             
-            # Get latest session info for discoveries
+            # Get latest session info for discoveries and time
             session_info = st.session_state.game_api.get_session_info(
                 st.session_state.game_session["session_id"]
             )
             if "error" not in session_info:
                 st.session_state.game_stats["discoveries"] = session_info.get("discoveries", [])
+                # Only update time if it's not None and greater than 0
+                new_time = session_info.get("time_remaining")
+                if new_time is not None and new_time >= 0:
+                    st.session_state.game_stats["time_remaining"] = new_time
         
-        # Check for completion
+        # Check for completion or time up
         if response.get("state") == "completed":
-            st.balloons()
-            st.success("🎉 **MISSION ACCOMPLISHED!** You've successfully cracked the code!")
+            if st.session_state.game_stats["time_remaining"] <= 0:
+                st.error("⏰ **TIME'S UP!** The server remains locked. Better luck next time!")
+            else:
+                st.balloons()
+                st.success("🎉 **MISSION ACCOMPLISHED!** You've successfully cracked the code!")
         
         # Auto-scroll and refresh
         st.session_state.last_input_time = time.time()
@@ -749,9 +764,11 @@ def display_progress_indicators():
             st.markdown(f"**{st.session_state.game_stats['score']}/100 points**")
         
         with col2:
-            st.markdown("### 🎯 Current Phase")
-            phase_info = get_phase_display(st.session_state.game_stats["phase"])
-            st.markdown(f"**{phase_info['name']}**")
+            st.markdown("### ⏱️ Time Remaining")
+            time_remaining = st.session_state.game_stats["time_remaining"]
+            time_progress = time_remaining / st.session_state.game_stats["game_duration"]
+            st.progress(time_progress)
+            st.markdown(f"**{time_remaining} minutes left**")
         
         with col3:
             st.markdown("### 🔍 Discoveries Made")
